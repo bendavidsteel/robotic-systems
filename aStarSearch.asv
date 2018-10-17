@@ -64,7 +64,7 @@ while openList.size() ~= 0
         i = 1;
         route(i) = pre;
         
-        while parents(route(i)) ~= 0
+        while parents(route(i)) ~= 1
             route(i + 1) = parents(route(i));
             i = i + 1;
         end
@@ -87,16 +87,10 @@ while openList.size() ~= 0
         if edges(pre,node) == true
             
             %making sure this node is not already in closed list with lower f
-            inSet = false;
-            
             for i = 0:closedList.size() - 1
                 if closedList.get(i) == node
-                    inSet = true;
+                    continue
                 end
-            end
-            
-            if inSet
-                continue
             end
             
             %setting successor nodes' f, g and h

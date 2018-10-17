@@ -1,0 +1,85 @@
+function [weights, edges, locations, startNode, finishNode] = mapGraph(robot, map, start, finish)
+
+%Accepts a robot with assigned map
+%Returns a graph with distances between all nodes in matrix form,
+%A boolean matrix indicating which nodes are connected
+%And the cartesian locations of the nodes on the graph
+
+%constants
+MAX_POINTS = 40;
+MINIMUM_WALL_DIST = 1;
+
+%formatting map
+map(length(newMap)+1, :) = map(1, :);
+mapLines = zeros(length(map)-1, 4);  %each row represents a border of the map
+for i = 1:size(mapLines,1)
+    mapLines(i,:) = [map(i,:) map(i+1,:)];
+end
+
+%finding midway point between start and finish
+midway = [(start(1) + finish(1))/2 , (start(2) + finish(2))/2];
+
+%finding distance between start and finish
+distStartFinish = sqrt((finish(1) - start(1))^2 + (finish(2) - start(2))^2);
+
+limsMin = min(map); % minimum limits of the map
+limsMax = max(map); % maximum limits of the map
+
+noPoints = 2;
+
+startNode = 1;
+finishNode = 2;
+
+points = zeros(MAX_POINTS, 2);
+
+points(startNode, :) = start;
+points(finishNode, :) = finish;
+
+while noPoints < MAX_POINTS
+    for i = 1:200 %prevents unlikely event of not randomly generating enough points in map in good time
+        %generating points in a circle centred between the start and finish points
+        r = rand*(distStartFinish/2);
+        theta = rand*2*pi;
+        x = (r * cos(theta)) + midway(1);
+        y = (r * sin(theta)) + midway(2);
+        %test if point in map
+        if min(disToLineSeg([x,y], mapLines)) > MINIMUM_WALL_DIST && robot.pointInsideMap([x,y])
+            noPoints = noPoints + 1;
+            points(noPoints, :) = [x , y];
+        end
+    end
+end
+
+locations = points(1:noPoints, :);
+
+edges = false(noPoints);
+weights = zeros(noPoints);
+
+%comparing all combinations of points to check for edge on map within bounds
+%if within bounds generating weights
+for i = 1 : noPoints
+    for j = i + 1 : noPoints
+        withinBounds = True;
+        
+        %checking points along line good distance from map edge
+        for n = 0:0.1:sqrt((locations(i,1) - locations(j,1))^2 + (locations(i,2) - locations(j,2))^2)
+            theta = atan2(locations(j,2) - locations(i,2) , locations(
+            if min(disToLineSeg(point, mapLines)) < MINIMUM_WALL_DIST*sqrt(2) && robot.pointInsideMap([x,y])
+                withinBounds = False;
+                break
+            end
+        end
+        
+        if withinBounds
+            edges(i,j) = True;
+            edges(j,i) = True;
+            
+            %finding weights
+            dist = sqrt((locations(i,1) - locations(j,1))^2 + (locations(i,2) - locations(j,2))^2);
+            weights(i,j) = dist;
+            weights(j,i) = dist;
+        end
+    end
+end
+
+
