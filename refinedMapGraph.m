@@ -1,18 +1,21 @@
-function [weights, edges, locations, startNode, finishNode] = mapGraph(robot, map, start, finish, MAX_POINTS)
+function [weights, edges, locations, startNode, finishNode] = refinedMapGraph(robot, map, graph, start, finish, MAX_POINTS, GEN_RADIUS, GEN_TIME_OUT, MAX_GRAPH_DIST, MIN_WALL_DIST)
 
 %Accepts a robot with assigned map
 %Returns a graph with distances between all nodes in matrix form,
 %A boolean matrix indicating which nodes are connected
 %And the cartesian locations of the nodes on the graph
 
-%constants
-MINIMUM_WALL_DIST = 1;
-
 %formatting map
 map(length(map)+1, :) = map(1, :);
 mapLines = zeros(length(map)-1, 4);  %each row represents a border of the map
 for i = 1:size(mapLines,1)
     mapLines(i,:) = [map(i,:) map(i+1,:)];
+end
+
+%formatting graph
+graphLines = zeros(length(graph)-1, 4);  %each row represents a line in the graph
+for i = 1:size(graphLines,1)-1
+    graphLines(i,:) = [graph(i,:) graph(i+1,:)];
 end
 
 %finding midway point between start and finish
@@ -37,16 +40,20 @@ points(finishNode, :) = finish;
 plot(start(1) , start(2), '^b');
 plot(finish(1) , finish(2), 'vb');
 
-for i = 1:200
+for i = 1:GEN_TIME_OUT
     while noPoints < MAX_POINTS
      %prevents unlikely event of not randomly generating enough points in map in good time
         %generating points in a circle centred between the start and finish points
-        r = rand*(distStartFinish);
+        r = rand*(distStartFinish/2)*GEN_RADIUS;
         theta = rand*2*pi;
         x = (r * cos(theta)) + midway(1);
         y = (r * sin(theta)) + midway(2);
         %test if point in map
-        if min(disToLineSeg([x,y], mapLines)) > MINIMUM_WALL_DIST && robot.pointInsideMap([x,y])
+        
+        awayFromWall = min(disToLineSeg([x,y], mapLines)) > MIN_WALL_DIST;
+        nearOldGraph = min(disToLineSeg([x,y], graphLines)) < MAX_GRAPH_DIST;
+        
+        if awayFromWall && nearOldGraph && robot.pointInsideMap([x,y])
             noPoints = noPoints + 1;
             points(noPoints, :) = [x , y];
             plot(x , y, '*b');%inside map
@@ -72,7 +79,7 @@ for i = 1 : noPoints
             x = locations(i,1) + (r * cos(theta));
             y = locations(i,2) + (r * sin(theta));
             
-            if min(disToLineSeg([x,y], mapLines)) < MINIMUM_WALL_DIST*sqrt(2) && robot.pointInsideMap([x,y])
+            if min(disToLineSeg([x,y], mapLines)) < MIN_WALL_DIST*sqrt(2) && robot.pointInsideMap([x,y])
                 withinBounds = false;
                 break
             end
@@ -91,5 +98,3 @@ for i = 1 : noPoints
         end
     end
 end
-
-
