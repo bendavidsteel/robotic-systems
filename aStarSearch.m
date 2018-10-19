@@ -128,5 +128,3 @@ while openList.size() ~= 0
         end
     end
 end
-
-disp("No path found")

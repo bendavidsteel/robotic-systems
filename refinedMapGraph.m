@@ -40,24 +40,29 @@ points(finishNode, :) = finish;
 plot(start(1) , start(2), '^b');
 plot(finish(1) , finish(2), 'vb');
 
-for i = 1:GEN_TIME_OUT
-    while noPoints < MAX_POINTS
-     %prevents unlikely event of not randomly generating enough points in map in good time
-        %generating points in a circle centred between the start and finish points
-        r = rand*(distStartFinish/2)*GEN_RADIUS;
-        theta = rand*2*pi;
-        x = (r * cos(theta)) + midway(1);
-        y = (r * sin(theta)) + midway(2);
-        %test if point in map
-        
-        awayFromWall = min(disToLineSeg([x,y], mapLines)) > MIN_WALL_DIST;
-        nearOldGraph = min(disToLineSeg([x,y], graphLines)) < MAX_GRAPH_DIST;
-        
-        if awayFromWall && nearOldGraph && robot.pointInsideMap([x,y])
-            noPoints = noPoints + 1;
-            points(noPoints, :) = [x , y];
-            plot(x , y, '*b');%inside map
-        end
+pointsGenerated = 0;
+
+while noPoints < MAX_POINTS
+ %prevents unlikely event of not randomly generating enough points in map in good time
+    %generating points in a circle centred between the start and finish points
+    r = rand*(distStartFinish/2)*GEN_RADIUS;
+    theta = rand*2*pi;
+    x = (r * cos(theta)) + midway(1);
+    y = (r * sin(theta)) + midway(2);
+    %test if point in map
+
+    awayFromWall = min(disToLineSeg([x,y], mapLines)) > MIN_WALL_DIST;
+    nearOldGraph = min(disToLineSeg([x,y], graphLines)) < MAX_GRAPH_DIST;
+
+    if awayFromWall && nearOldGraph && robot.pointInsideMap([x,y])
+        noPoints = noPoints + 1;
+        points(noPoints, :) = [x , y];
+        plot(x , y, '*b');%inside map
+    end
+    %testing for time out
+    pointsGenerated = pointsGenerated + 1;
+    if pointsGenerated > GEN_TIME_OUT
+        break
     end
 end
 
