@@ -31,8 +31,8 @@ points = zeros(MAX_POINTS, 2);
 points(startNode, :) = start;
 points(finishNode, :) = finish;
 
-plot(start(1) , start(2), '^b');
-plot(finish(1) , finish(2), 'vb');
+% plot(start(1) , start(2), '^b');
+% plot(finish(1) , finish(2), 'vb');
 
 pointsGenerated = 0;
 
@@ -47,7 +47,7 @@ while noPoints < MAX_POINTS
     if min(disToLineSeg([x,y], mapLines)) > MIN_WALL_DIST && robot.pointInsideMap([x,y])
         noPoints = noPoints + 1;
         points(noPoints, :) = [x , y];
-        plot(x , y, '*b');%inside map
+%         plot(x , y, '*b');%inside map
     end
 
     %testing for time out
@@ -90,7 +90,7 @@ for i = 1 : noPoints
             weights(i,j) = dist;
             weights(j,i) = dist;
             
-            plot([locations(i,1), locations(j,1)], [locations(i,2), locations(j,2)]);
+%             plot([locations(i,1), locations(j,1)], [locations(i,2), locations(j,2)]);
         end
     end
 end

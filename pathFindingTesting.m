@@ -1,6 +1,6 @@
-function score = pathFindingTesting(MAX_POINTS, GEN_RADIUS, GEN_TIME_OUT, MIN_WALL_DIST, MAX_GRAPH_DIST, NO_GRAPH_ITERATIONS, TIME_OUT, RAD_EXPANSION, TUNE_FACTOR)
+function score = pathFindingTesting(INITIAL_TRIES, MAX_POINTS, GEN_RADIUS, GEN_TIME_OUT, GRID_DENSITY, MIN_WALL_DIST, MAX_GRAPH_DIST, NO_GRAPH_ITERATIONS, RAD_EXPANSION)
 
-clf;        %clears figures
+% clf;        %clears figures
 
 % MAX_POINTS = 10;
 % GEN_RADIUS = 2;
@@ -53,34 +53,43 @@ finishes(4) = {[90,90]};
 shortestDists = [88.8, 145.4, 160.5, 113.1];
 
 %randomly select a map
-map = maps{randi(4)};
-start = starts{randi(4)};
-finish = finishes{randi(4)};
-shortestDist = shortestDists(randi(4));
+randint = randi(4);
+
+map = maps{randint};
+start = starts{randint};
+finish = finishes{randint};
+shortestDist = shortestDists(randint);
 
 tic;
 
 robot = BotSim(map); %generating map
 
 foundPath = false;
+iterations = 0;
 
 %find initial path with random spread of nodes throughout accessable areas in map
 while ~foundPath
     %clear figure of previous tries
-    clf;
-    robot.drawMap();
-    hold on;
+%     clf;
+%     robot.drawMap();
+%     hold on;
     %generating initial map of nodes
-    [weights, edges, locations, startNode, finishNode] = initialMapGraph(robot, map, start, finish, MAX_POINTS, GEN_RADIUS, GEN_TIME_OUT, MIN_WALL_DIST);
+    if iterations < INITIAL_TRIES
+        [weights, edges, locations, startNode, finishNode] = initialMapGraph(robot, map, start, finish, MAX_POINTS, GEN_RADIUS, GEN_TIME_OUT, MIN_WALL_DIST);
+    else
+        [weights, edges, locations, startNode, finishNode] = initialMapGridGraph(robot, map, start, finish, GRID_DENSITY, MIN_WALL_DIST);
+    end
     %find path
     path = aStarSearch(robot, weights, edges, locations, startNode, finishNode);
     
     if path == false
         foundPath = false;
         %prevent GEN_RADIUS going to infinity
-        if GEN_RADIUS < 4
+        if GEN_RADIUS < 3
             GEN_RADIUS = GEN_RADIUS * RAD_EXPANSION;
         end
+        
+        iterations = iterations + 1;
     else
         foundPath = true;
     end
@@ -90,48 +99,41 @@ bestPath = path;
 bestPathLen = pathLength(path);
 %now that we've found the path, lets look for a better one
 %we'll regenerate the map at random in areas around the located path
-for i = 1:NO_GRAPH_ITERATIONS
     
-    newPathLen = Inf;
-    
-    foundPath = false;
-    
-    iterations = 0;
-    
-    %check that this new path is actually better than the old one
-    while ~foundPath && newPathLen >= bestPathLen
-        
-        clf;
-        robot.drawMap();
-        hold on;
-        %regenerating map with tighter constraints
-        [weights, edges, locations, startNode, finishNode] = refinedMapGraph(robot, map, bestPath, start, finish, MAX_POINTS, GEN_RADIUS, GEN_TIME_OUT, MAX_GRAPH_DIST, MIN_WALL_DIST);
-        %find path
-        path = aStarSearch(robot, weights, edges, locations, startNode, finishNode);
-        
-        if path == false
-            foundPath = false;
-        else
-            foundPath = true;
-            newPathLen = pathLength(path);
-            %saving best path
-            if newPathLen < bestPathLen
-                bestPath = path;
-                bestPathLen = newPathLen;
-            end
-        end
-        
-        %if can't come up with better path, exit
-        iterations = iterations + 1;
-        if iterations > TIME_OUT
-            return
+newPathLen = Inf;
+
+foundPath = false;
+
+iterations = 0;
+
+%check that this new path is actually better than the old one
+while ~foundPath && newPathLen >= bestPathLen
+
+%         clf;
+%         robot.drawMap();
+%         hold on;
+    %regenerating map with tighter constraints
+    [weights, edges, locations, startNode, finishNode] = refinedMapGraph(robot, map, bestPath, start, finish, MAX_POINTS, GEN_RADIUS, GEN_TIME_OUT, MAX_GRAPH_DIST, MIN_WALL_DIST);
+    %find path
+    path = aStarSearch(robot, weights, edges, locations, startNode, finishNode);
+
+    if path == false
+        foundPath = false;
+    else
+        foundPath = true;
+        newPathLen = pathLength(path);
+        %saving best path
+        if newPathLen < bestPathLen
+            bestPath = path;
+            bestPathLen = newPathLen;
         end
     end
-    %tighten constraints to fine tune path
-    if MAX_GRAPH_DIST > 10
-        MAX_GRAPH_DIST = MAX_GRAPH_DIST * TUNE_FACTOR;
+
+    %if can't come up with better path, exit
+    iterations = iterations + 1;
+    if iterations > NO_GRAPH_ITERATIONS
+        break
     end
-    
 end
 
 %evaluating method

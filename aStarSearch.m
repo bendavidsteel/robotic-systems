@@ -54,7 +54,7 @@ while openList.size() ~= 0
     %pushing pre onto closed list
     closedList.add(pre);
     
-    plot(locations(pre,1), locations(pre,2), '*r');
+%     plot(locations(pre,1), locations(pre,2), '*r');
     
     %checking if finish node is reached
     if pre == finish
@@ -76,7 +76,7 @@ while openList.size() ~= 0
         
         for i = 1:length(route)
             path(i,:) = locations(route(i),:);
-            plot(locations(route(i),1), locations(route(i),2), '*y');
+%             plot(locations(route(i),1), locations(route(i),2), '*y');
         end
         
         return
@@ -114,7 +114,7 @@ while openList.size() ~= 0
             if ~inSet
                 %pushing node onto open list
                 openList.add(node);
-                plot(locations(node,1), locations(node,2), '*g')
+%                 plot(locations(node,1), locations(node,2), '*g')
             elseif tentativeG >= g(node)
                 continue
             end
