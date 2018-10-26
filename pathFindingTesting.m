@@ -29,7 +29,7 @@ function score = pathFindingTesting(INITIAL_TRIES, MAX_POINTS, GEN_RADIUS, GEN_T
 % finish = [90,90];
 % shortestDist = 113.1;
 
-score = Inf;
+score = 0;
 
 %trial maps
 maps = cell(4,1);
@@ -75,7 +75,9 @@ while ~foundPath
 %     hold on;
     %generating initial map of nodes
     if iterations < INITIAL_TRIES
-        [weights, edges, locations, startNode, finishNode] = initialMapGraph(robot, map, start, finish, MAX_POINTS, GEN_RADIUS, GEN_TIME_OUT, MIN_WALL_DIST);
+        [weights, edges, locations, startNode, finishNode] = initialMapPointsGraph(robot, map, start, finish, MIN_WALL_DIST);
+    elseif iterations > 100
+        return
     else
         [weights, edges, locations, startNode, finishNode] = initialMapGridGraph(robot, map, start, finish, GRID_DENSITY, MIN_WALL_DIST);
     end

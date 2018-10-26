@@ -38,6 +38,10 @@ for x = limsMin(1):GRID_DENSITY:limsMax(1)
     end
 end
 
+
+
+
+
 locations = points(1:noPoints, :);
 
 edges = false(noPoints);
@@ -50,7 +54,7 @@ for i = 1 : noPoints
         withinBounds = true;
         
         %checking points along line good distance from map edge
-        for r = 0:0.1:sqrt((locations(i,1) - locations(j,1))^2 + (locations(i,2) - locations(j,2))^2)
+        for r = 0:1:sqrt((locations(i,1) - locations(j,1))^2 + (locations(i,2) - locations(j,2))^2)
             
             theta = atan2(locations(j,2) - locations(i,2) , locations(j,1) - locations(i,1));
             x = locations(i,1) + (r * cos(theta));

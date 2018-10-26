@@ -1,4 +1,4 @@
-function [weights, edges, locations, startNode, finishNode] = refinedMapGraph(robot, map, graph, start, finish, MAX_POINTS, GEN_RADIUS, GEN_TIME_OUT, MAX_GRAPH_DIST, MIN_WALL_DIST)
+function [weights, edges, locations, startNode, finishNode] = initialMapPointsGraph(robot, map, start, finish, MIN_WALL_DIST)
 
 %Accepts a robot with assigned map
 %Returns a graph with distances between all nodes in matrix form,
@@ -12,18 +12,6 @@ for i = 1:size(mapLines,1)
     mapLines(i,:) = [map(i,:) map(i+1,:)];
 end
 
-%formatting graph
-graphLines = zeros(length(graph)-1, 4);  %each row represents a line in the graph
-for i = 1:size(graphLines,1)-1
-    graphLines(i,:) = [graph(i,:) graph(i+1,:)];
-end
-
-%finding midway point between start and finish
-midway = [(start(1) + finish(1))/2 , (start(2) + finish(2))/2];
-
-%finding distance between start and finish
-distStartFinish = sqrt((finish(1) - start(1))^2 + (finish(2) - start(2))^2);
-
 limsMin = min(map); % minimum limits of the map
 limsMax = max(map); % maximum limits of the map
 
@@ -32,39 +20,35 @@ noPoints = 2;
 startNode = 1;
 finishNode = 2;
 
-points = zeros(MAX_POINTS, 2);
+points = zeros(1 + 8*length(map), 2);
 
 points(startNode, :) = start;
 points(finishNode, :) = finish;
 
+
 % plot(start(1) , start(2), '^b');
 % plot(finish(1) , finish(2), 'vb');
 
-pointsGenerated = 0;
 
-while noPoints < MAX_POINTS
- %prevents unlikely event of not randomly generating enough points in map in good time
-    %generating points in a circle centred between the start and finish points
-    r = rand*(distStartFinish/2)*GEN_RADIUS;
-    theta = rand*2*pi;
-    x = (r * cos(theta)) + midway(1);
-    y = (r * sin(theta)) + midway(2);
-    %test if point in map
-
-    awayFromWall = min(disToLineSeg([x,y], mapLines)) > MIN_WALL_DIST;
-    nearOldGraph = min(disToLineSeg([x,y], graphLines)) < MAX_GRAPH_DIST;
-
-    if awayFromWall && nearOldGraph && robot.pointInsideMap([x,y])
-        noPoints = noPoints + 1;
-        points(noPoints, :) = [x , y];
-%         plot(x , y, '*b');%inside map
-    end
-    %testing for time out
-    pointsGenerated = pointsGenerated + 1;
-    if pointsGenerated > GEN_TIME_OUT
-        break
+for i = 1:length(map)
+    nearbyPoints = [map(i,1), map(i,2) + MIN_WALL_DIST;
+                    map(i,1) + sqrt(2)*MIN_WALL_DIST, map(i,2) + sqrt(2)*MIN_WALL_DIST;
+                    map(i,1) + MIN_WALL_DIST, map(i,2);
+                    map(i,1) + sqrt(2)*MIN_WALL_DIST, map(i,2) - sqrt(2)*MIN_WALL_DIST;
+                    map(i,1), map(i,2) - MIN_WALL_DIST;
+                    map(i,1) - sqrt(2)*MIN_WALL_DIST, map(i,2) - sqrt(2)*MIN_WALL_DIST;
+                    map(i,1) - MIN_WALL_DIST, map(i,2);
+                    map(i,1) - sqrt(2)*MIN_WALL_DIST, map(i,2) + sqrt(2)*MIN_WALL_DIST];
+                
+   
+    for j = 1:length(nearbyPoints)
+        if robot.pointInsideMap(nearbyPoints(j,:))
+            noPoints = noPoints + 1;
+            points(noPoints, :) = nearbyPoints(j,:);
+        end
     end
 end
+
 
 locations = points(1:noPoints, :);
 
@@ -103,3 +87,4 @@ for i = 1 : noPoints
         end
     end
 end
+

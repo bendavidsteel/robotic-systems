@@ -1,6 +1,6 @@
 %genetic algorithm parameters
 MUTATION_RATE = 0.2;
-POPULATION = 20;
+POPULATION = 10;
 NO_GENES = 9;
 NO_PARENTS = 4;
 maxScore = 0;
@@ -10,6 +10,11 @@ generation = 0;
 chromosomes = zeros(POPULATION, NO_GENES); 
 scores = zeros(POPULATION, 1);
 
+% 12, -11, 1.4, 13, 20, 1, 38, 71, 1.15
+
+% 148.5
+% 19 , 6 , 1.06 , -19 , 5 , 1 , 4 , 91 , 1.59
+
 %initial population
 for i = 1:POPULATION
     %Setting range that arguments can be randomly generated in
@@ -17,7 +22,7 @@ for i = 1:POPULATION
     MAX_POINTS = randi(50);
     GEN_RADIUS = (4-1)*rand(1) + 1;
     GEN_TIME_OUT = randi(20);
-    GRID_DENSITY = (20-5)*randi(1) + 5;
+    GRID_DENSITY = round((20-5)*rand(1) + 5);
     MIN_WALL_DIST = 1;
     MAX_GRAPH_DIST = randi(100);
     NO_GRAPH_ITERATIONS = randi(100);
@@ -46,33 +51,33 @@ while true
       
         %crossover or mutation
         if (rand(1) < MUTATION_RATE)
-            INITIAL_TRIES = round(normrnd(INITIAL_TRIES, 5));
+            INITIAL_TRIES = abs(round(normrnd(INITIAL_TRIES, 5)));
             %len_data = 40;
         else
             INITIAL_TRIES = parents(gene_choices(1),1);
         end
         
         if (rand(1) < MUTATION_RATE)
-            MAX_POINTS = round(normrnd(MAX_POINTS, 10));
+            MAX_POINTS = abs(round(normrnd(MAX_POINTS, 10)));
             %len_data = 40;
         else
             MAX_POINTS = parents(gene_choices(2),2);
         end
         
         if (rand(1) < MUTATION_RATE)
-            GEN_RADIUS = normrnd(GEN_RADIUS, 1);
+            GEN_RADIUS = abs(normrnd(GEN_RADIUS, 1));
         else
             GEN_RADIUS = parents(gene_choices(3),3);
         end
         
         if (rand(1) < MUTATION_RATE)
-            GEN_TIME_OUT = round(normrnd(GEN_TIME_OUT, 20));
+            GEN_TIME_OUT = abs(round(normrnd(GEN_TIME_OUT, 20)));
         else
             GEN_TIME_OUT = parents(gene_choices(4),4);
         end
         
         if (rand(1) < MUTATION_RATE)
-            GRID_DENSITY = round(normrnd(GRID_DENSITY, 5));
+            GRID_DENSITY = abs(round(normrnd(GRID_DENSITY, 5)));
         else
             GRID_DENSITY = parents(gene_choices(5),5);
         end
@@ -84,19 +89,19 @@ while true
         end
         
         if (rand(1) < MUTATION_RATE)
-            MAX_GRAPH_DIST = round(normrnd(MAX_GRAPH_DIST, 10));
+            MAX_GRAPH_DIST = abs(round(normrnd(MAX_GRAPH_DIST, 10)));
         else
             MAX_GRAPH_DIST = parents(gene_choices(7),7);
         end
         
         if (rand(1) < MUTATION_RATE)
-            NO_GRAPH_ITERATIONS = round(normrnd(NO_GRAPH_ITERATIONS, 10));
+            NO_GRAPH_ITERATIONS = abs(round(normrnd(NO_GRAPH_ITERATIONS, 10)));
         else
             NO_GRAPH_ITERATIONS = parents(gene_choices(8),8);
         end
         
         if (rand(1) < MUTATION_RATE)
-            RAD_EXPANSION = normrnd(RAD_EXPANSION, 0.1);
+            RAD_EXPANSION = abs(normrnd(RAD_EXPANSION, 0.1));
         else
             RAD_EXPANSION = parents(gene_choices(9),9);
         end

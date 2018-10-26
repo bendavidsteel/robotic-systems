@@ -36,7 +36,7 @@ points(finishNode, :) = finish;
 
 pointsGenerated = 0;
 
-while noPoints < MAX_POINTS
+while ((noPoints < MAX_POINTS) && (pointsGenerated < GEN_TIME_OUT))
  %prevents unlikely event of not randomly generating enough points in map in good time
     %generating points in a circle centred between the start and finish points
     r = rand*(distStartFinish/2)*GEN_RADIUS;
@@ -49,12 +49,9 @@ while noPoints < MAX_POINTS
         points(noPoints, :) = [x , y];
 %         plot(x , y, '*b');%inside map
     end
-
+    %OVERGENERATING POINTS
     %testing for time out
     pointsGenerated = pointsGenerated + 1;
-    if pointsGenerated > GEN_TIME_OUT
-        break
-    end
 end
 
 locations = points(1:noPoints, :);
@@ -69,7 +66,7 @@ for i = 1 : noPoints
         withinBounds = true;
         
         %checking points along line good distance from map edge
-        for r = 0:0.1:sqrt((locations(i,1) - locations(j,1))^2 + (locations(i,2) - locations(j,2))^2)
+        for r = 0:1:sqrt((locations(i,1) - locations(j,1))^2 + (locations(i,2) - locations(j,2))^2)
             
             theta = atan2(locations(j,2) - locations(i,2) , locations(j,1) - locations(i,1));
             x = locations(i,1) + (r * cos(theta));
