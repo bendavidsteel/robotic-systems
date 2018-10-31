@@ -20,15 +20,29 @@ for i = 1:num
 end
 
 %% Localisation code
-K = 0; % constant to improve lifetime of particles
-SEARCH_VAR = 5; % variance of norm distribution
+K = 0.1; % constant to improve lifetime of particles
+SEARCH_VAR = 2; % variance of norm distribution
 CONV_DIST = 10;
 RESAMPLE_VAR = 1;
-GOOD_CLEARANCE = 20;
+GOOD_CLEARANCE = 10;
+CLUSTER_PROPORTION = 0.35;
+MAX_STEP = 5;
+MIN_WALL_DIST = 2;
+MIN_PATH_DIST = 1;
+REDIST_PRO = 0.97;
+BREAK_DIST = 3;
 maxNumOfIterations = 100;
 n = 0;
 converged =0; %The filter has not converged yet
-while(converged == 0 && n < maxNumOfIterations) %%particle filter loop
+
+path = [0,0];
+clusterParticles = [0,0];
+clusterCount = 1;
+bestPos = [0,0];
+oldTurn = 0;
+
+%while(converged == 0 && n < maxNumOfIterations) %%particle filter loop
+while true
     n = n+1; %increment the current number of iterations
     botScan = botSim.ultraScan(); %get a scan from the real robot.
     
@@ -55,7 +69,18 @@ while(converged == 0 && n < maxNumOfIterations) %%particle filter loop
 %         [positionsUnique,ia,ic] = unique(positions, 'rows', 'stable');           % Unique Values By Row, Retaining Original Order
 %         occurences = accumarray(ic, 1);
         
+        %displaying particles
         scatter(positions(:,1), positions(:,2), 0.5, '*r')
+        %displaying path
+        scatter(path(:,1), path(:,2), '*y')
+        %displaying target
+        scatter(target(1), target(2), '*g')
+        %displaying converged location
+        if converged
+            scatter(sum(clusterParticles(:,1))/clusterCount, sum(clusterParticles(:,2))/clusterCount, '*b')
+        end
+        %displaying best guess for location
+        scatter(bestPos(1), bestPos(2), '*c')
         
         drawnow;
     end
@@ -93,13 +118,14 @@ while(converged == 0 && n < maxNumOfIterations) %%particle filter loop
     %save position of most correlated particle
     [~, particleMaxCorr] = max(particlesCorr);
     bestPos = particles(particleMaxCorr).getBotPos();
+    bestAng = mod(particles(particleMaxCorr).getBotAng(), 2*pi);
     
     %% Write code for resampling your particles
     %using roulette wheel sampling for each particle to find a new position
     newParticles = particles;
     
     %redistribute some particles according to sampling
-    for i = 1:num
+    for i = 1:(num*REDIST_PRO)
         randNum = rand();
 
         for j = 1:num
@@ -112,12 +138,16 @@ while(converged == 0 && n < maxNumOfIterations) %%particle filter loop
         end
         
         pos = particles(newPoint).getBotPos();
-        angle = particles(newPoint).getBotAng();
+        angle = mod(particles(newPoint).getBotAng(), 2*pi);
         pos(1) = normrnd(pos(1), RESAMPLE_VAR);
         pos(2) = normrnd(pos(2), RESAMPLE_VAR);
         
         newParticles(i).setBotPos(pos);
         newParticles(i).setBotAng(angle);
+    end
+    
+    for i = (REDIST_PRO*num)+1:num
+        newParticles(i).randomPose(0);
     end
     
     %others should be rerandoml
@@ -142,7 +172,18 @@ while(converged == 0 && n < maxNumOfIterations) %%particle filter loop
 %         [positionsUnique,~,ic] = unique(positions, 'rows', 'stable');           % Unique Values By Row, Retaining Original Order
 %         occurences = accumarray(ic, 1);
         
+        %displaying particles
         scatter(positions(:,1), positions(:,2), 0.5, '*r')
+        %displaying path
+        scatter(path(:,1), path(:,2), '*y')
+        %displaying target
+        scatter(target(1), target(2), '*g')
+        %displaying converged location
+        if converged
+            scatter(sum(clusterParticles(:,1))/clusterCount, sum(clusterParticles(:,2))/clusterCount, '*b')
+        end
+        %displaying best guess for location
+        scatter(bestPos(1), bestPos(2), '*c')
         
         drawnow;
     end
@@ -152,53 +193,129 @@ while(converged == 0 && n < maxNumOfIterations) %%particle filter loop
     
     pos1 = bestPos;
     clusterCount = 0;
-    clusterParticles = zeros(num,2);
+    clusterParticles = zeros(num,3);
     
     for i = 1:num
         pos2 = particles(i).getBotPos();
         
         if sqrt((pos1(1) - pos2(1))^2 + (pos1(2) - pos2(2))^2) < CONV_DIST
             clusterCount = clusterCount + 1;
-            clusterParticles(i,:) = pos2;
+            clusterParticles(i,1:2) = pos2;
+            clusterParticles(i,3) = mod(particles(i).getBotAng(), 2*pi);
         end
     end
-    
-    if clusterCount > num*0.5
-        break
+    %checking for suitable proportion of particles in one place indicating convergence
+    if clusterCount > num*CLUSTER_PROPORTION
+        converged = true;
+        convLoc = [sum(clusterParticles(:,1))/clusterCount, sum(clusterParticles(:,2))/clusterCount];
+        if sqrt((convLoc(1) - target(1))^2 + (convLoc(2) - target(2))^2) < BREAK_DIST
+            break
+        end
+    else
+        converged = false;
     end
+    
       
     %% Write code to decide how to move next
     % move robot randonly while avoiding walls
     
-    goodDirections = find(botScan > GOOD_CLEARANCE);
+    
+    % using converged position or best guess
+%     if converged
+%         pos1 = [sum(clusterParticles(:,1))/clusterCount, sum(clusterParticles(:,2))/clusterCount];
+%         % pos1Ang = sum(clusterParticles(:,3))/clusterCount;
+%         pos1Ang = mode(clusterParticles(:,3));
+%     else
+%         pos1 = bestPos;
+%         pos1Ang = bestAng;
+%     end
+
+    pos1 = bestPos;
+    pos1Ang = bestAng;
+
+    if converged
+        [weights, edges, locations, startNode, finishNode] = initialMapPointsGraph(botSim, map, bestPos, target, MIN_WALL_DIST, MIN_PATH_DIST);
+
+        path = aStarSearch(botSim, weights, edges, locations, startNode, finishNode);
+    
+        pos2 = path(2,:);
+
+        goodDirections = find(botScan > min([GOOD_CLEARANCE, sqrt((pos2(2) - pos1(2))^2 + (pos2(1) - pos1(1))^2)]));
+    else
+        goodDirections = find(botScan > GOOD_CLEARANCE);
+    end
     
     if ~isempty(goodDirections)
-        %if a few good directions, randomly select one, and turn and move in that direction
-        %angle to robot
-        pos1 = bestPos;
-        pos2 = target;
-        
-        angleToTarget = atan2(pos2(2) - pos1(2), pos2(1) - pos1(1));
-        
-        %find nearest good angle to direction of robot1
-        closestIndex = 1;
-        closest = 2*pi;
-        
-        for i = 1:length(goodDirections)
-            if abs(angleToTarget - ((goodDirections(i) - 1)*2*pi / NUMBER_OF_SCANS)) < closest
-                closest = abs(angleToTarget - ((goodDirections(i) - 1)*2*pi / NUMBER_OF_SCANS));
-                closestIndex = i;
+        if converged
+            %if a few good directions, randomly select one, and turn and move in that direction
+            %angle to robot
+
+            angleToTarget = atan2(pos2(2) - pos1(2), pos2(1) - pos1(1));
+
+            %finding absolute angle of first point in path from robot
+            angle = mod(angleToTarget - pos1Ang, 2*pi);
+            %checking if correct angle is has path which is in map
+
+%             goodAngle = false;
+%             for i = 1:length(goodDirections)
+%                 if ((goodDirections(i) - 1)*2*pi / NUMBER_OF_SCANS < angle) && (goodDirections(i)*2*pi / NUMBER_OF_SCANS > angle)
+%                     goodAngle = true;
+%                 end
+%             end
+% 
+%             if goodAngle
+%                 turn = angle;
+%             else
+%                 %find nearest good angle to direction of next step in path if can't go directly
+%                 closestIndex = 1;
+%                 closest = 2*pi;
+% 
+%                 for i = 1:length(goodDirections)
+%                     if abs(angle - ((goodDirections(i) - 1)*2*pi / NUMBER_OF_SCANS)) < closest
+%                         closest = abs(angle - ((goodDirections(i) - 1)*2*pi / NUMBER_OF_SCANS));
+%                         closestIndex = i;
+%                     elseif abs((angle - 2*pi) - ((goodDirections(i) - 1)*2*pi / NUMBER_OF_SCANS)) < closest
+%                         closest = abs((angle - 2*pi) - ((goodDirections(i) - 1)*2*pi / NUMBER_OF_SCANS));
+%                         closestIndex = i;
+%                     end
+%                 end
+% 
+%                 turn = (goodDirections(closestIndex) - 1)*2*pi / NUMBER_OF_SCANS;
+%             end
+            
+            % find nearest good angle to direction of next step in path if can't go directly
+            closestIndex = 1;
+            closest = 2*pi;
+
+            for i = 1:length(goodDirections)
+                if abs(angle - ((goodDirections(i) - 1)*2*pi / NUMBER_OF_SCANS)) < closest
+                    closest = abs(angle - ((goodDirections(i) - 1)*2*pi / NUMBER_OF_SCANS));
+                    closestIndex = i;
+                elseif abs((angle - 2*pi) - ((goodDirections(i) - 1)*2*pi / NUMBER_OF_SCANS)) < closest
+                    closest = abs((angle - 2*pi) - ((goodDirections(i) - 1)*2*pi / NUMBER_OF_SCANS));
+                    closestIndex = i;
+                end
             end
+
+            turn = (goodDirections(closestIndex) - 1)*2*pi / NUMBER_OF_SCANS;
+
+            move = min([MAX_STEP, sqrt((pos2(2) - pos1(2))^2 + (pos2(1) - pos1(1))^2)]);
+        else
+            %if not converged try to cover as much of map as possible
+            turn = (goodDirections(1) - 1)*2*pi / NUMBER_OF_SCANS;
+            move = 5;
         end
-        
-        turn = (goodDirections(closestIndex) - 1)*2*pi / NUMBER_OF_SCANS;
-        move = 5;
     else
         %finding maximum distance to go in if no good distances
         [dist,index] = max(botScan);
         turn = ((2*pi) / NUMBER_OF_SCANS) * (index(0) - 1);
-        move = max([dist*0.5, 5]); %move fraction of distance for best bet for new direction
+        move = min([dist*0.5, MAX_STEP]); %move fraction of distance for best bet for new direction
     end
+    
+    %trying to prevent symmetry locks
+%     if (abs(oldTurn - pi) < 0.2) && (abs(turn - pi) < 0.2)
+%         turn = 0;
+%     end
     
     botSim.turn(turn); %turn the real robot.  
     botSim.move(move); %move the real robot. These movements are recorded for marking 
@@ -206,6 +323,8 @@ while(converged == 0 && n < maxNumOfIterations) %%particle filter loop
         particles(i).turn(turn); %turn the particle in the same way as the real robot
         particles(i).move(move); %move the particle in the same way as the real robot
     end
+    
+    oldTurn = turn;
     
     %% Drawing
     %only draw if you are in debug mode or it will be slow during marking
@@ -225,12 +344,21 @@ while(converged == 0 && n < maxNumOfIterations) %%particle filter loop
 %         [positionsUnique,ia,ic] = unique(positions, 'rows', 'stable');           % Unique Values By Row, Retaining Original Order
 %         occurences = accumarray(ic, 1);
         
+        %displaying particles
         scatter(positions(:,1), positions(:,2), 0.5, '*r')
+        %displaying path
+        scatter(path(:,1), path(:,2), '*y')
+        %displaying target
+        scatter(target(1), target(2), '*g')
+        %displaying converged location
+        if converged
+            scatter(sum(clusterParticles(:,1))/clusterCount, sum(clusterParticles(:,2))/clusterCount, '*b')
+        end
+        %displaying best guess for location
+        scatter(bestPos(1), bestPos(2), '*c')
         
         drawnow;
     end
 end
-
-scatter(sum(clusterParticles(:,1))/clusterCount, sum(clusterParticles(:,2))/clusterCount, '*b');
 
 end

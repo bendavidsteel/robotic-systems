@@ -1,4 +1,4 @@
-function [weights, edges, locations, startNode, finishNode] = initialMapPointsGraph(robot, map, start, finish, MIN_WALL_DIST)
+function [weights, edges, locations, startNode, finishNode] = initialMapPointsGraph(robot, map, start, finish, MIN_WALL_DIST, MIN_PATH_DIST)
 
 %Accepts a robot with assigned map
 %Returns a graph with distances between all nodes in matrix form,
@@ -31,14 +31,14 @@ points(finishNode, :) = finish;
 
 
 for i = 1:length(map)
-    nearbyPoints = [map(i,1), map(i,2) + MIN_WALL_DIST;
-                    map(i,1) + sqrt(2)*MIN_WALL_DIST, map(i,2) + sqrt(2)*MIN_WALL_DIST;
-                    map(i,1) + MIN_WALL_DIST, map(i,2);
-                    map(i,1) + sqrt(2)*MIN_WALL_DIST, map(i,2) - sqrt(2)*MIN_WALL_DIST;
-                    map(i,1), map(i,2) - MIN_WALL_DIST;
-                    map(i,1) - sqrt(2)*MIN_WALL_DIST, map(i,2) - sqrt(2)*MIN_WALL_DIST;
-                    map(i,1) - MIN_WALL_DIST, map(i,2);
-                    map(i,1) - sqrt(2)*MIN_WALL_DIST, map(i,2) + sqrt(2)*MIN_WALL_DIST];
+    nearbyPoints = [map(i,1), map(i,2) + sqrt(2)*MIN_WALL_DIST;
+                    map(i,1) + MIN_WALL_DIST, map(i,2) + MIN_WALL_DIST;
+                    map(i,1) + sqrt(2)*MIN_WALL_DIST, map(i,2);
+                    map(i,1) + MIN_WALL_DIST, map(i,2) - MIN_WALL_DIST;
+                    map(i,1), map(i,2) - sqrt(2)*MIN_WALL_DIST;
+                    map(i,1) - MIN_WALL_DIST, map(i,2) - MIN_WALL_DIST;
+                    map(i,1) - sqrt(2)*MIN_WALL_DIST, map(i,2);
+                    map(i,1) - MIN_WALL_DIST, map(i,2) + MIN_WALL_DIST];
                 
    
     for j = 1:length(nearbyPoints)
@@ -68,7 +68,7 @@ for i = 1 : noPoints
             x = locations(i,1) + (r * cos(theta));
             y = locations(i,2) + (r * sin(theta));
             
-            if min(disToLineSeg([x,y], mapLines)) < MIN_WALL_DIST*sqrt(2) && robot.pointInsideMap([x,y])
+            if min(disToLineSeg([x,y], mapLines)) < MIN_PATH_DIST*sqrt(2) && robot.pointInsideMap([x,y])
                 withinBounds = false;
                 break
             end
