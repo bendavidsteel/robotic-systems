@@ -1,4 +1,4 @@
-function [botSim] = localise(botSim,map,target, noise)
+function [botSim] = localiseParameters(botSim,map,target, noise, NO_PARTICLES, NUMBER_OF_SCANS, MODEL_NOISE, K, SEARCH_VAR, CONV_DIST, RESAMPLE_VAR, CLUSTER_PROPORTION, MAX_STEP, REDIST_PRO, BREAK_DIST)
 %This function returns botSim, and accepts, botSim, a map and a target.
 %LOCALISE Template localisation function
 
@@ -7,13 +7,11 @@ function [botSim] = localise(botSim,map,target, noise)
 modifiedMap = map; %you need to do this modification yourself
 botSim.setMap(modifiedMap);
 
-NUMBER_OF_SCANS = 4;
-MODEL_NOISE = 0;
-
 botSim.setScanConfig(botSim.generateScanConfig(NUMBER_OF_SCANS));
 
 %generate some random particles inside the map
-num =300; % number of particles
+%optimize for this as well
+num = NO_PARTICLES; % number of particles
 particles(num,1) = BotSim; %how to set up a vector of objects
 for i = 1:num
     %particles(i) = BotSim(modifiedMap, [0,0,0]);
@@ -27,18 +25,13 @@ for i = 1:num
 end
 
 %% Localisation code
-K = 0.22; % constant to improve lifetime of particles
-SEARCH_VAR = 1.34; % variance of norm distribution
-CONV_DIST = 18.57;
-RESAMPLE_VAR = 5.955;
 GOOD_CLEARANCE = 10;
-CLUSTER_PROPORTION = 0.75;
-MAX_STEP = 7;
 MIN_WALL_DIST = 2;
 MIN_PATH_DIST = 1;
-REDIST_PRO = 0.9;
-BREAK_DIST = 4.44;
 MAX_NUM_OF_ITERATIONS = 100;
+
+drawMap = false;
+
 n = 0;
 converged =0; %The filter has not converged yet
 
@@ -59,7 +52,7 @@ while(n < MAX_NUM_OF_ITERATIONS) %%particle filter loop
         scans(:,i) = particles(i).ultraScan();
     end
     
-    if botSim.debug()
+    if drawMap
         hold off; %the drawMap() function will clear the drawing when hold is off
         botSim.drawMap(); %drawMap() turns hold back on again, so you can draw the bots
         botSim.drawBot(30,'g'); %draw robot with line length 30 and green
@@ -152,7 +145,7 @@ while(n < MAX_NUM_OF_ITERATIONS) %%particle filter loop
         newParticles(i).setBotAng(angle);
     end
     
-    for i = (REDIST_PRO*num)+1:num
+    for i = round((REDIST_PRO*num))+1:num
         newParticles(i).randomPose(0);
     end
     
@@ -161,7 +154,7 @@ while(n < MAX_NUM_OF_ITERATIONS) %%particle filter loop
     %copying new particle positions into old particle elements
     particles = newParticles;
     
-    if botSim.debug()
+    if drawMap
         hold off; %the drawMap() function will clear the drawing when hold is off
         botSim.drawMap(); %drawMap() turns hold back on again, so you can draw the bots
         botSim.drawBot(30,'g'); %draw robot with line length 30 and green
@@ -334,7 +327,7 @@ while(n < MAX_NUM_OF_ITERATIONS) %%particle filter loop
     
     %% Drawing
     %only draw if you are in debug mode or it will be slow during marking
-    if botSim.debug()
+    if drawMap
         hold off; %the drawMap() function will clear the drawing when hold is off
         botSim.drawMap(); %drawMap() turns hold back on again, so you can draw the bots
         botSim.drawBot(30,'g'); %draw robot with line length 30 and green

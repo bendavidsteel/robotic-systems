@@ -1,8 +1,8 @@
 %genetic algorithm parameters
-MUTATION_RATE = 0.2;
+MUTATION_RATE = 0.1;
 POPULATION = 10;
-NO_GENES = 9;
-NO_PARENTS = 4;
+NO_GENES = 11;
+NO_PARENTS = 2;
 maxScore = 0;
 greatestScore = 0;
 generation = 0;
@@ -10,28 +10,25 @@ generation = 0;
 chromosomes = zeros(POPULATION, NO_GENES); 
 scores = zeros(POPULATION, 1);
 
-% 12, -11, 1.4, 13, 20, 1, 38, 71, 1.15
-
-% 148.5
-% 19 , 6 , 1.06 , -19 , 5 , 1 , 4 , 91 , 1.59
-
 %initial population
 for i = 1:POPULATION
     %Setting range that arguments can be randomly generated in
-    INITIAL_TRIES = randi(30);
-    MAX_POINTS = randi(50);
-    GEN_RADIUS = (4-1)*rand(1) + 1;
-    GEN_TIME_OUT = randi(20);
-    GRID_DENSITY = round((20-5)*rand(1) + 5);
-    MIN_WALL_DIST = 1;
-    MAX_GRAPH_DIST = randi(100);
-    NO_GRAPH_ITERATIONS = randi(100);
-    RAD_EXPANSION = (2-1)*rand(1) + 1;
+    NO_PARTICLES = abs(round(normrnd(293, 10)));
+    NUMBER_OF_SCANS = abs(round(normrnd(7, 3)))+4;
+    MODEL_NOISE = 0;
+    K = abs(normrnd(0.1105, 0.01));
+    SEARCH_VAR = abs(normrnd(0.31, 0.2));
+    CONV_DIST = abs(normrnd(10.1, 2));
+    RESAMPLE_VAR = abs(normrnd(2.985, 0.5));
+    CLUSTER_PROPORTION = abs(normrnd(0.811, 0.1));
+    MAX_STEP = abs(normrnd(5.53,1));
+    REDIST_PRO = abs(normrnd(0.967, 0.01));
+    BREAK_DIST = abs(normrnd(0.464, 1));
     
     %storing randomly generated arguments
-    chromosomes(i, :) = [INITIAL_TRIES, MAX_POINTS, GEN_RADIUS, GEN_TIME_OUT, GRID_DENSITY, MIN_WALL_DIST, MAX_GRAPH_DIST, NO_GRAPH_ITERATIONS, RAD_EXPANSION];
+    chromosomes(i, :) = [NO_PARTICLES, NUMBER_OF_SCANS, MODEL_NOISE, K, SEARCH_VAR, CONV_DIST, RESAMPLE_VAR, CLUSTER_PROPORTION, MAX_STEP, REDIST_PRO, BREAK_DIST];
     %running and evaluating algorithm with a set of arguments
-    scores(i) = pathFindingTesting(INITIAL_TRIES, MAX_POINTS, GEN_RADIUS, GEN_TIME_OUT, GRID_DENSITY, MIN_WALL_DIST, MAX_GRAPH_DIST, NO_GRAPH_ITERATIONS, RAD_EXPANSION);
+    scores(i) = localisationFunction(NO_PARTICLES, NUMBER_OF_SCANS, MODEL_NOISE, K, SEARCH_VAR, CONV_DIST, RESAMPLE_VAR, CLUSTER_PROPORTION, MAX_STEP, REDIST_PRO, BREAK_DIST);
 end
 
 parents = zeros(NO_PARENTS, NO_GENES);
@@ -48,67 +45,81 @@ while true
     %one of the parents, or re randomly generated
     for i = 1:POPULATION
         gene_choices = round((NO_PARENTS - 1)*rand(NO_GENES,1) + 1);
-      
+        
         %crossover or mutation
         if (rand(1) < MUTATION_RATE)
-            INITIAL_TRIES = abs(round(normrnd(INITIAL_TRIES, 5)));
+            NO_PARTICLES = abs(round(normrnd(NO_PARTICLES, 10)));
+            
             %len_data = 40;
         else
-            INITIAL_TRIES = parents(gene_choices(1),1);
+            NO_PARTICLES = parents(gene_choices(1),1);
         end
         
         if (rand(1) < MUTATION_RATE)
-            MAX_POINTS = abs(round(normrnd(MAX_POINTS, 10)));
+            NUMBER_OF_SCANS = abs(round(normrnd(NUMBER_OF_SCANS, 3)))+4;
+            
             %len_data = 40;
         else
-            MAX_POINTS = parents(gene_choices(2),2);
+            NUMBER_OF_SCANS = parents(gene_choices(2),2);
         end
         
         if (rand(1) < MUTATION_RATE)
-            GEN_RADIUS = abs(normrnd(GEN_RADIUS, 1));
+            MODEL_NOISE = 0;
         else
-            GEN_RADIUS = parents(gene_choices(3),3);
+            MODEL_NOISE = parents(gene_choices(3),3);
         end
         
         if (rand(1) < MUTATION_RATE)
-            GEN_TIME_OUT = abs(round(normrnd(GEN_TIME_OUT, 20)));
+            K = abs(normrnd(K, 0.01));
         else
-            GEN_TIME_OUT = parents(gene_choices(4),4);
+            K = parents(gene_choices(4),4);
         end
         
         if (rand(1) < MUTATION_RATE)
-            GRID_DENSITY = abs(round(normrnd(GRID_DENSITY, 5)));
+            SEARCH_VAR = abs(normrnd(SEARCH_VAR, 1));
         else
-            GRID_DENSITY = parents(gene_choices(5),5);
+            SEARCH_VAR = parents(gene_choices(5),5);
         end
         
         if (rand(1) < MUTATION_RATE)
-            MIN_WALL_DIST = 1;
+            CONV_DIST = abs(normrnd(CONV_DIST, 2));
         else
-            MIN_WALL_DIST = parents(gene_choices(6),6);
+            CONV_DIST = parents(gene_choices(6),6);
         end
         
         if (rand(1) < MUTATION_RATE)
-            MAX_GRAPH_DIST = abs(round(normrnd(MAX_GRAPH_DIST, 10)));
+            RESAMPLE_VAR = abs(normrnd(RESAMPLE_VAR, 0.5));
         else
-            MAX_GRAPH_DIST = parents(gene_choices(7),7);
+            RESAMPLE_VAR = parents(gene_choices(7),7);
         end
         
         if (rand(1) < MUTATION_RATE)
-            NO_GRAPH_ITERATIONS = abs(round(normrnd(NO_GRAPH_ITERATIONS, 10)));
+            CLUSTER_PROPORTION = abs(normrnd(CLUSTER_PROPORTION, 0.1));
         else
-            NO_GRAPH_ITERATIONS = parents(gene_choices(8),8);
+            CLUSTER_PROPORTION = parents(gene_choices(8),8);
         end
         
         if (rand(1) < MUTATION_RATE)
-            RAD_EXPANSION = abs(normrnd(RAD_EXPANSION, 0.1));
+            MAX_STEP = abs(normrnd(MAX_STEP,1));
         else
-            RAD_EXPANSION = parents(gene_choices(9),9);
+            MAX_STEP = parents(gene_choices(9),9);
+        end
+        
+        if (rand(1) < MUTATION_RATE)
+            REDIST_PRO = abs(normrnd(REDIST_PRO, 0.01));
+        else
+            REDIST_PRO = parents(gene_choices(10),10);
+        end
+        
+        if (rand(1) < MUTATION_RATE)
+            BREAK_DIST = abs(normrnd(BREAK_DIST, 1));
+        else
+            BREAK_DIST = parents(gene_choices(11),11);
         end
     
-        chromosomes(i, :) = [INITIAL_TRIES, MAX_POINTS, GEN_RADIUS, GEN_TIME_OUT, GRID_DENSITY, MIN_WALL_DIST, MAX_GRAPH_DIST, NO_GRAPH_ITERATIONS, RAD_EXPANSION];
+        chromosomes(i, :) = [NO_PARTICLES, NUMBER_OF_SCANS, MODEL_NOISE, K, SEARCH_VAR, CONV_DIST, RESAMPLE_VAR, CLUSTER_PROPORTION, MAX_STEP, REDIST_PRO, BREAK_DIST];
         %running and evaluating algorithm with a set of arguments
-        scores(i) = pathFindingTesting(INITIAL_TRIES, MAX_POINTS, GEN_RADIUS, GEN_TIME_OUT, GRID_DENSITY, MIN_WALL_DIST, MAX_GRAPH_DIST, NO_GRAPH_ITERATIONS, RAD_EXPANSION);
+        scores(i) = localisationFunction(NO_PARTICLES, NUMBER_OF_SCANS, MODEL_NOISE, K, SEARCH_VAR, CONV_DIST, RESAMPLE_VAR, CLUSTER_PROPORTION, MAX_STEP, REDIST_PRO, BREAK_DIST);
     end
     
     [maxScore, index] = max(scores);
